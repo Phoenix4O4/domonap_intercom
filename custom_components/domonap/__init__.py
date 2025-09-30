@@ -6,6 +6,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.event import async_track_time_interval
 from .const import DOMAIN, API, PARAM_ACCESS_TOKEN, PARAM_REFRESH_TOKEN, PARAM_REFRESH_EXPIRATION
 from .api import IntercomAPI
+from .notify_client import IntercomNotifyClient
 
 _LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.BUTTON, Platform.CAMERA]
@@ -22,6 +23,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     api.set_tokens(entry.data.get(PARAM_ACCESS_TOKEN),
                    entry.data.get(PARAM_REFRESH_TOKEN),
                    entry.data.get(PARAM_REFRESH_EXPIRATION))
+
+    notify_client = IntercomNotifyClient(hass, api)
+    entry.async_create_background_task(hass, notify_client.process(), "domonap_notify_client_update")
 
     def update_entry(access_token, refresh_token, refresh_expiration_date):
         _LOGGER.debug("Updating entry with new tokens")
@@ -44,7 +48,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
-    return await hass.config_entries.async_forward_entry_unload(entry, Platform.BUTTON)
+    res = (await hass.config_entries.async_forward_entry_unload(entry, Platform.BUTTON) &
+           await hass.config_entries.async_forward_entry_unload(entry, Platform.CAMERA))
+    return res
 
 
 async def update_tokens(hass: HomeAssistant):
