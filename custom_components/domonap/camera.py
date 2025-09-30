@@ -28,6 +28,7 @@ class IntercomCamera(Camera):
     _attr_supported_features = CameraEntityFeature.STREAM
     _attr_frontend_stream_type = StreamType.HLS
     _attr_motion_detection_enabled = False
+    _attr_supported_stream_types = [StreamType.HLS, StreamType.WEB_RTC]
 
     def __init__(self, api, key_id: str, name: str, stream_url: str, snapshot_url: str):
         super().__init__()
@@ -60,6 +61,10 @@ class IntercomCamera(Camera):
             return None
 
     async def stream_source(self):
+        return self._stream_url
+    
+    async def async_get_stream_source(self):
+        """Return the stream source URL for WebRTC."""
         return self._stream_url
 
     @property
